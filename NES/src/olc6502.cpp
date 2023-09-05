@@ -297,14 +297,6 @@ uint8_t olc6502::fetch() {
   return fetched;
 }
 
-uint8_t olc6502::AND() {
-  fetch();
-  a = a & fetched;
-  SetFlag(Z, a == 0x00);
-  SetFlag(N, a == 0x80);
-  return 1;
-}
-
 uint8_t olc6502::BCS() {
   if (GetFlag(C) == 1) {
     cycles++;
@@ -542,4 +534,12 @@ uint8_t olc6502::RTI() {
   stkp++;
   pc |= (uint16_t)read(0x100 + stkp) << 8;
   return 0;
+}
+
+uint8_t olc6502::AND() {
+  fetch();
+  a &= fetched;
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
+  return 1;
 }
