@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,14 @@ public:
   uint16_t pc = 0x0000;  // Program Counter
   uint8_t status = 0x00; // Status Register
 
+  std::map<uint16_t, std::string> disassemble(uint16_t nStart, uint16_t nStop);
+
+  void clock();
+  void reset();
+  void irq();
+  void nmi();
+
+private:
   // Addresing Modes
   uint8_t IMP();
   uint8_t IMM();
@@ -103,19 +112,6 @@ public:
 
   uint8_t XXX();
 
-  void clock();
-  void reset();
-  void irq();
-  void nmi();
-
-  uint8_t fetch();
-  uint8_t fetched = 0x00;
-
-  uint16_t addr_abs = 0x0000;
-  uint16_t addr_rel = 0x0000;
-  uint8_t opcode = 0x00;
-  uint8_t cycles = 0;
-
 public:
   void ConnectBus(Bus *n) { bus = n; }
 
@@ -127,6 +123,16 @@ private:
   // Functions to access status register
   uint8_t GetFlag(FLAGS6502 flag);
   void SetFlag(FLAGS6502 flag, bool v);
+
+  // Emulation variables
+  uint8_t fetched = 0x00;
+  uint16_t temp = 0x0000;
+  uint16_t addr_abs = 0x0000;
+  uint16_t addr_rel = 0x0000;
+  uint8_t opcode = 0x00;
+  uint8_t cycles = 0;
+
+  uint8_t fetch();
 
   struct INSTRUCTION {
     std::string name;
