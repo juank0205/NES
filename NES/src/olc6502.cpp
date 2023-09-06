@@ -159,6 +159,67 @@ void olc6502::clock() {
   cycles--;
 }
 
+void olc6502::reset() {
+  a = 0;
+  x = 0;
+  y = 0;
+  stkp = 0xFD;
+  status = 0x00 | U;
+
+  addr_abs = 0xFFFC;
+  uint16_t lo = read(addr_abs);
+  uint16_t hi = read(addr_abs + 1);
+
+  pc = (hi << 8) | lo;
+
+  addr_rel = 0x0000;
+  addr_abs = 0x0000;
+  fetched = 0x00;
+
+  cycles = 8;
+}
+
+
+void olc6502::irq() {
+  if (GetFlag(I) == 0) {
+    write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+    stkp--;
+    write(0x0100 + stkp, pc & 0x00FF);
+    stkp--;
+
+    SetFlag(B, 0);
+    SetFlag(U, 1);
+    SetFlag(I, 1);
+    write(0x0100 + stkp, status);
+    stkp--;
+
+    uint16_t lo = read(addr_abs);
+    uint16_t hi = read(addr_abs + 1);
+    pc = (hi << 8) | lo;
+
+    cycles = 7;
+  }
+}
+
+void olc6502::nmi() {
+  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  stkp--;
+  write(0x0100 + stkp, pc & 0x00FF);
+  stkp--;
+
+  SetFlag(B, 0);
+  SetFlag(U, 1);
+  SetFlag(I, 1);
+  write(0x0100 + stkp, status);
+  stkp--;
+
+  uint16_t lo = read(addr_abs);
+  uint16_t hi = read(addr_abs + 1);
+  pc = (hi << 8) | lo;
+
+  cycles = 7;
+}
+
 ////////////////////////////////////////////////////////////
 // Flag Functions
 uint8_t olc6502::GetFlag(FLAGS6502 flag) {
@@ -290,23 +351,47 @@ uint8_t olc6502::REL() {
 }
 
 //////////////////////////////////////////////////////
-// Instructions
+// Instructions (opcodes)
 uint8_t olc6502::fetch() {
   if (!(lookup[opcode].addrmode == &olc6502::IMP))
     fetched = read(addr_abs);
   return fetched;
 }
 
-uint8_t olc6502::BCS() {
-  if (GetFlag(C) == 1) {
-    cycles++;
-    addr_abs = pc + addr_rel;
+//Add with carry
+uint8_t olc6502::ADC() {
+  fetch();
+  uint16_t temp = (uint16_t)a + (uint16_t)fetched + (uint16_t)GetFlag(C);
+  SetFlag(C, temp > 255);
+  SetFlag(Z, (temp & 0x00FF) == 0);
+  SetFlag(N, temp & 0x80);
+  SetFlag(V, (((uint16_t)a ^ (uint16_t)temp) &
+              (~((uint16_t)a ^ (uint16_t)fetched))) &
+                 0x0080);
+  a = temp & 0x00FF;
+  return 1;
+}
 
-    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
-      cycles++;
+//Logical and
+uint8_t olc6502::AND() {
+  fetch();
+  a &= fetched;
+  SetFlag(Z, a == 0x00);
+  SetFlag(N, a & 0x80);
+  return 1;
+}
 
-    pc = addr_abs;
-  }
+//Arithmetic shift left
+uint8_t olc6502::ASL() {
+  fetch();
+  temp = (uint16_t)fetched << 1;
+  SetFlag(C, (temp & 0xFF00) > 0);
+  SetFlag(Z, (temp & 0x00FF) == 0x00);
+  SetFlag(N, (temp & 0x80));
+  if (lookup[opcode].addrmode == &olc6502::IMP)
+    a = temp & 0x00FF;
+  else
+    write(addr_abs, temp & 0x00FF);
   return 0;
 }
 
@@ -323,6 +408,20 @@ uint8_t olc6502::BCC() {
   return 0;
 }
 
+uint8_t olc6502::BCS() {
+  if (GetFlag(C) == 1) {
+    cycles++;
+    addr_abs = pc + addr_rel;
+
+    if ((addr_abs & 0xFF00) != (pc & 0xFF00))
+      cycles++;
+
+    pc = addr_abs;
+  }
+  return 0;
+}
+
+
 uint8_t olc6502::BEQ() {
   if (GetFlag(Z) == 1) {
     cycles++;
@@ -336,8 +435,8 @@ uint8_t olc6502::BEQ() {
   return 0;
 }
 
-uint8_t olc6502::BNE() {
-  if (GetFlag(Z) == 0) {
+uint8_t olc6502::BMI() {
+  if (GetFlag(N) == 1) {
     cycles++;
     addr_abs = pc + addr_rel;
 
@@ -349,8 +448,8 @@ uint8_t olc6502::BNE() {
   return 0;
 }
 
-uint8_t olc6502::BMI() {
-  if (GetFlag(N) == 1) {
+uint8_t olc6502::BNE() {
+  if (GetFlag(Z) == 0) {
     cycles++;
     addr_abs = pc + addr_rel;
 
@@ -421,34 +520,6 @@ uint8_t olc6502::CLV() {
   return 0;
 }
 
-uint8_t olc6502::ADC() {
-  fetch();
-  uint16_t temp = (uint16_t)a + (uint16_t)fetched + (uint16_t)GetFlag(C);
-  SetFlag(C, temp > 255);
-  SetFlag(Z, (temp & 0x00FF) == 0);
-  SetFlag(N, temp & 0x80);
-  SetFlag(V, (((uint16_t)a ^ (uint16_t)temp) &
-              (~((uint16_t)a ^ (uint16_t)fetched))) &
-                 0x0080);
-  a = temp & 0x00FF;
-  return 1;
-}
-
-uint8_t olc6502::SBC() {
-  fetch();
-  uint16_t value = ((uint16_t)fetched) ^ 0x00FF;
-
-  uint16_t temp = (uint16_t)a + (uint16_t)value + (uint16_t)GetFlag(C);
-  SetFlag(C, temp > 255);
-  SetFlag(Z, (temp & 0x00FF) == 0);
-  SetFlag(N, temp & 0x80);
-  SetFlag(
-      V, (((uint16_t)a ^ (uint16_t)temp) & (~((uint16_t)a ^ (uint16_t)value))) &
-             0x0080);
-  a = temp & 0x00FF;
-  return 1;
-}
-
 uint8_t olc6502::PHA() {
   write(0x0100 + stkp, a);
   stkp--;
@@ -461,66 +532,6 @@ uint8_t olc6502::PLA() {
   SetFlag(Z, a == 0x00);
   SetFlag(N, a & 0x80);
   return 0;
-}
-
-void olc6502::reset() {
-  a = 0;
-  x = 0;
-  y = 0;
-  stkp = 0xFD;
-  status = 0x00 | U;
-
-  addr_abs = 0xFFFC;
-  uint16_t lo = read(addr_abs);
-  uint16_t hi = read(addr_abs + 1);
-
-  pc = (hi << 8) | lo;
-
-  addr_rel = 0x0000;
-  addr_abs = 0x0000;
-  fetched = 0x00;
-
-  cycles = 8;
-}
-
-void olc6502::irq() {
-  if (GetFlag(I) == 0) {
-    write(0x0100 + stkp, (pc >> 8) & 0x00FF);
-    stkp--;
-    write(0x0100 + stkp, pc & 0x00FF);
-    stkp--;
-
-    SetFlag(B, 0);
-    SetFlag(U, 1);
-    SetFlag(I, 1);
-    write(0x0100 + stkp, status);
-    stkp--;
-
-    uint16_t lo = read(addr_abs);
-    uint16_t hi = read(addr_abs + 1);
-    pc = (hi << 8) | lo;
-
-    cycles = 7;
-  }
-}
-
-void olc6502::nmi() {
-  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
-  stkp--;
-  write(0x0100 + stkp, pc & 0x00FF);
-  stkp--;
-
-  SetFlag(B, 0);
-  SetFlag(U, 1);
-  SetFlag(I, 1);
-  write(0x0100 + stkp, status);
-  stkp--;
-
-  uint16_t lo = read(addr_abs);
-  uint16_t hi = read(addr_abs + 1);
-  pc = (hi << 8) | lo;
-
-  cycles = 7;
 }
 
 uint8_t olc6502::RTI() {
@@ -536,10 +547,17 @@ uint8_t olc6502::RTI() {
   return 0;
 }
 
-uint8_t olc6502::AND() {
+uint8_t olc6502::SBC() {
   fetch();
-  a &= fetched;
-  SetFlag(Z, a == 0x00);
-  SetFlag(N, a & 0x80);
+  uint16_t value = ((uint16_t)fetched) ^ 0x00FF;
+
+  uint16_t temp = (uint16_t)a + (uint16_t)value + (uint16_t)GetFlag(C);
+  SetFlag(C, temp > 255);
+  SetFlag(Z, (temp & 0x00FF) == 0);
+  SetFlag(N, temp & 0x80);
+  SetFlag(
+      V, (((uint16_t)a ^ (uint16_t)temp) & (~((uint16_t)a ^ (uint16_t)value))) &
+             0x0080);
+  a = temp & 0x00FF;
   return 1;
 }
