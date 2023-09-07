@@ -179,7 +179,6 @@ void olc6502::reset() {
   cycles = 8;
 }
 
-
 void olc6502::irq() {
   if (GetFlag(I) == 0) {
     write(0x0100 + stkp, (pc >> 8) & 0x00FF);
@@ -358,7 +357,7 @@ uint8_t olc6502::fetch() {
   return fetched;
 }
 
-//Add with carry
+// Add with carry
 uint8_t olc6502::ADC() {
   fetch();
   uint16_t temp = (uint16_t)a + (uint16_t)fetched + (uint16_t)GetFlag(C);
@@ -372,7 +371,7 @@ uint8_t olc6502::ADC() {
   return 1;
 }
 
-//Logical and
+// Logical and
 uint8_t olc6502::AND() {
   fetch();
   a &= fetched;
@@ -381,7 +380,7 @@ uint8_t olc6502::AND() {
   return 1;
 }
 
-//Arithmetic shift left
+// Arithmetic shift left
 uint8_t olc6502::ASL() {
   fetch();
   temp = (uint16_t)fetched << 1;
@@ -395,6 +394,7 @@ uint8_t olc6502::ASL() {
   return 0;
 }
 
+// Branch on carry clear
 uint8_t olc6502::BCC() {
   if (GetFlag(C) == 0) {
     cycles++;
@@ -408,6 +408,7 @@ uint8_t olc6502::BCC() {
   return 0;
 }
 
+// Branch on carry set
 uint8_t olc6502::BCS() {
   if (GetFlag(C) == 1) {
     cycles++;
@@ -421,7 +422,7 @@ uint8_t olc6502::BCS() {
   return 0;
 }
 
-
+// Branch on result zero
 uint8_t olc6502::BEQ() {
   if (GetFlag(Z) == 1) {
     cycles++;
@@ -435,6 +436,17 @@ uint8_t olc6502::BEQ() {
   return 0;
 }
 
+// Test bits in memory with acumulator
+uint8_t olc6502::BIT() {
+  fetch();
+  temp = a & fetched;
+  SetFlag(N, temp & 0x80); // 0x80 == (1 << 7)
+  SetFlag(V, temp & 0x40); // 0x40 == (1 << 6)
+  SetFlag(Z, (temp & 0x00FF) == 0x00);
+  return 0;
+}
+
+// Branch on result minus
 uint8_t olc6502::BMI() {
   if (GetFlag(N) == 1) {
     cycles++;
@@ -448,6 +460,7 @@ uint8_t olc6502::BMI() {
   return 0;
 }
 
+// Branch on result not zero
 uint8_t olc6502::BNE() {
   if (GetFlag(Z) == 0) {
     cycles++;
@@ -461,6 +474,7 @@ uint8_t olc6502::BNE() {
   return 0;
 }
 
+// Branch on result plus
 uint8_t olc6502::BPL() {
   if (GetFlag(N) == 0) {
     cycles++;
@@ -471,6 +485,25 @@ uint8_t olc6502::BPL() {
 
     pc = addr_abs;
   }
+  return 0;
+}
+
+// Force Break
+uint8_t olc6502::BRK() {
+  pc++;
+
+  SetFlag(I, 1);
+  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  stkp--;
+  write(0x0100 + stkp, pc & 0x00FF);
+  stkp--;
+
+  SetFlag(B, 1);
+  write(0x0100 + stkp, status);
+  stkp--;
+  SetFlag(B, 0);
+
+  pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
   return 0;
 }
 
