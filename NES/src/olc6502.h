@@ -32,10 +32,10 @@ public:
 
   std::map<uint16_t, std::string> disassemble(uint16_t nStart, uint16_t nStop);
 
-  void clock();
-  void reset();
-  void irq();
-  void nmi();
+  void clock(); //Simulate real time that instructions take to operate
+  void reset();  // Reset some flags, registers and place pointers
+  void irq(); //Interrupt request validating the interrupt flag
+  void nmi(); //Interrupt without asking
 
 private:
   // Addresing Modes
@@ -116,6 +116,7 @@ public:
   void ConnectBus(Bus *n) { bus = n; }
 
 private:
+  //Bus connection
   Bus *bus = nullptr;
   uint8_t read(uint16_t address);
   void write(uint16_t address, uint8_t data);
