@@ -1060,4 +1060,3 @@ std::map<uint16_t, std::string> olc6502::disassemble(uint16_t nStart, uint16_t n
 
   return mapLines;
 }
-}
