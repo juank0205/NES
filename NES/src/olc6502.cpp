@@ -507,6 +507,7 @@ uint8_t olc6502::BRK() {
   return 0;
 }
 
+//Branch on overflow clear
 uint8_t olc6502::BVC() {
   if (GetFlag(V) == 0) {
     cycles++;
@@ -520,6 +521,7 @@ uint8_t olc6502::BVC() {
   return 0;
 }
 
+//Branch on overflow set
 uint8_t olc6502::BVS() {
   if (GetFlag(V) == 1) {
     cycles++;
@@ -533,26 +535,31 @@ uint8_t olc6502::BVS() {
   return 0;
 }
 
+//Clear carry
 uint8_t olc6502::CLC() {
   SetFlag(C, false);
   return 0;
 }
 
+//Clear decimal
 uint8_t olc6502::CLD() {
   SetFlag(D, false);
   return 0;
 }
 
+//Clear interrupt disable
 uint8_t olc6502::CLI() {
   SetFlag(I, false);
   return 0;
 }
 
+//Clear overflow
 uint8_t olc6502::CLV() {
   SetFlag(V, false);
   return 0;
 }
 
+//Compare memory with accumulator
 uint8_t olc6502::CMP()
 {
   fetch();
@@ -563,6 +570,7 @@ uint8_t olc6502::CMP()
   return 1;
 }
 
+//Compare x register with accumulator
 uint8_t olc6502::CPX()
 {
   fetch();
@@ -573,6 +581,7 @@ uint8_t olc6502::CPX()
   return 1;
 }
 
+//Compare y register with accumulator
 uint8_t olc6502::CPY()
 {
   fetch();
@@ -583,6 +592,7 @@ uint8_t olc6502::CPY()
   return 1;
 }
 
+//Decrease memory by one
 uint8_t olc6502::DEC()
 {
   fetch();
@@ -593,6 +603,7 @@ uint8_t olc6502::DEC()
   return 0;
 }
 
+//Decrease x register by one
 uint8_t olc6502::DEX()
 {
   x--;
@@ -601,6 +612,7 @@ uint8_t olc6502::DEX()
   return 0;
 }
 
+//Decrease y register by one
 uint8_t olc6502::DEY()
 {
   y--;
@@ -609,6 +621,7 @@ uint8_t olc6502::DEY()
   return 0;
 }
 
+//Exclusive or memory and accumulator
 uint8_t olc6502::EOR()
 {
   fetch();
@@ -618,6 +631,7 @@ uint8_t olc6502::EOR()
   return 1;
 }
 
+//Increase memory by one
 uint8_t olc6502::INC()
 {
   fetch();
@@ -628,6 +642,7 @@ uint8_t olc6502::INC()
   return 1;
 }
 
+//Increase x register by one
 uint8_t olc6502::INX()
 {
   x++;
@@ -636,6 +651,7 @@ uint8_t olc6502::INX()
   return 0;
 }
 
+//Increase y register by one
 uint8_t olc6502::INY()
 {
   y++;
@@ -644,12 +660,14 @@ uint8_t olc6502::INY()
   return 0;
 }
 
+//Jump to new location
 uint8_t olc6502::JMP()
 {
   pc = addr_abs;
   return 0;
 }
 
+//Jump to new location saving return address
 uint8_t olc6502::JSR()
 {
   pc--;
@@ -662,6 +680,7 @@ uint8_t olc6502::JSR()
   return 0;
 }
 
+//Load index a
 uint8_t olc6502::LDA()
 {
   fetch();
@@ -671,6 +690,7 @@ uint8_t olc6502::LDA()
   return 0;
 }
 
+//Load index x
 uint8_t olc6502::LDX()
 {
   fetch();
@@ -680,6 +700,7 @@ uint8_t olc6502::LDX()
   return 0;
 }
 
+//Load index y
 uint8_t olc6502::LDY()
 {
   fetch();
@@ -689,6 +710,7 @@ uint8_t olc6502::LDY()
   return 0;
 }
 
+//Shift one bit right
 uint8_t olc6502::LSR()
 {
   fetch();
@@ -703,6 +725,7 @@ uint8_t olc6502::LSR()
   return 0;
 }
 
+//No operation
 uint8_t olc6502::NOP()
 {
   switch (opcode) {
@@ -718,6 +741,7 @@ uint8_t olc6502::NOP()
   return 0;
 }
 
+//Or memory with accumulator
 uint8_t olc6502::ORA()
 {
   fetch();
@@ -727,13 +751,15 @@ uint8_t olc6502::ORA()
   return 1;
 }
 
-uint8_t olc6502::PHA() 
+//Push accumulator on stack
+uint8_t olc6502::PHA()
 {
   write(0x0100 + stkp, a);
   stkp--;
   return 0;
 }
 
+//Push status on stack
 uint8_t olc6502::PHP()
 {
   write(0x0100 + stkp, status | B | U);
@@ -743,6 +769,7 @@ uint8_t olc6502::PHP()
   return 0;
 }
 
+//Pull accumulator on the stack
 uint8_t olc6502::PLA() {
   stkp++;
   a = read(0x100 + stkp);
@@ -751,6 +778,7 @@ uint8_t olc6502::PLA() {
   return 0;
 }
 
+//Pull status from the stack
 uint8_t olc6502::PLP()
 {
   stkp++;
@@ -759,6 +787,7 @@ uint8_t olc6502::PLP()
   return 0;
 }
 
+//Rotate one bit left
 uint8_t olc6502::ROL()
 {
   fetch();
@@ -769,6 +798,7 @@ uint8_t olc6502::ROL()
 
 }
 
+//Rotate one bit right
 uint8_t olc6502::ROR()
 {
   fetch();
@@ -783,6 +813,7 @@ uint8_t olc6502::ROR()
   return 0;
 }
 
+//Return from interrupt
 uint8_t olc6502::RTI() {
   stkp++;
   status = read(0x0100 + stkp);
