@@ -25,13 +25,13 @@ includedirs
 
 filter "system:windows"
 system "windows"
-cppdialect "C++20"
+cppdialect "C++17"
 staticruntime "On"
 systemversion "latest"
 
 filter "system:Unix"
 system "linux"
-cppdialect "C++20"
+cppdialect "C++17"
 staticruntime "On"
 systemversion "latest"
 
