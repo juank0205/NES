@@ -1,6 +1,7 @@
 #include "Cartridge.h"
 
-Cartridge::Cartridge()
+
+Cartridge::Cartridge(const std::string& sFileName)
 {
 }
 

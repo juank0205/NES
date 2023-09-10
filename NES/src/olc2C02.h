@@ -1,4 +1,7 @@
 #pragma once
+#include "Cartridge.h"
+
+#include <memory>
 #include <cstdint>
 
 class olc2C02
@@ -15,5 +18,16 @@ public:
 	//Communications with the PPU bus
 	uint8_t ppuRead(uint16_t addr, bool rdonly = false);
 	void ppuWrite(uint16_t addr, uint8_t data);
+
+	//Interface
+	void connectCarridge(const std::shared_ptr<Cartridge>& cartridge);
+	void clock();
+
+private:
+	std::shared_ptr<Cartridge> cart;
+
+	uint8_t tblName[2][1024];
+	uint8_t tblPallete[32];
+	//uint8_t tblPattern[2][4096];
 };
 
