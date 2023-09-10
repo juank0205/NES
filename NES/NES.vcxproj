@@ -131,11 +131,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Cartridge.h" />
+    <ClInclude Include="src\olc2C02.h" />
     <ClInclude Include="src\Bus.h" />
     <ClInclude Include="src\olc6502.h" />
     <ClInclude Include="src\olcPixelGameEngine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Cartridge.cpp" />
+    <ClCompile Include="src\olc2C02.cpp" />
     <ClCompile Include="src\Bus.cpp" />
     <ClCompile Include="src\olc6502.cpp" />
     <ClCompile Include="src\olcNes_Video1_6502.cpp" />

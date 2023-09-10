@@ -21,12 +21,30 @@
     <ClCompile Include="src\olc6502.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\olcNes_Video1_6502.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\olc2C02.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Cartridge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Bus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\olc6502.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\olcPixelGameEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\olc2C02.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Cartridge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -26,15 +26,15 @@ olc6502::olc6502() {
 
 olc6502::~olc6502() {}
 
-uint8_t olc6502::read(uint16_t address) { return bus->read(address, false); }
+uint8_t olc6502::cpuRead(uint16_t address) { return bus->cpuRead(address, false); }
 
-void olc6502::write(uint16_t address, uint8_t data) {
-  bus->write(address, data);
+void olc6502::cpuWrite(uint16_t address, uint8_t data) {
+  bus->cpuWrite(address, data);
 }
 
 void olc6502::clock() {
   if (cycles == 0) {
-    opcode = read(pc);
+    opcode = cpuRead(pc);
     SetFlag(U, true);
     pc++;
     cycles = lookup[opcode].cycles;
@@ -56,8 +56,8 @@ void olc6502::reset() {
   status = 0x00 | U;
 
   addr_abs = 0xFFFC;
-  uint16_t lo = read(addr_abs);
-  uint16_t hi = read(addr_abs + 1);
+  uint16_t lo = cpuRead(addr_abs);
+  uint16_t hi = cpuRead(addr_abs + 1);
 
   pc = (hi << 8) | lo;
 
@@ -70,19 +70,19 @@ void olc6502::reset() {
 
 void olc6502::irq() {
   if (GetFlag(I) == 0) {
-    write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+    cpuWrite(0x0100 + stkp, (pc >> 8) & 0x00FF);
     stkp--;
-    write(0x0100 + stkp, pc & 0x00FF);
+    cpuWrite(0x0100 + stkp, pc & 0x00FF);
     stkp--;
 
     SetFlag(B, 0);
     SetFlag(U, 1);
     SetFlag(I, 1);
-    write(0x0100 + stkp, status);
+    cpuWrite(0x0100 + stkp, status);
     stkp--;
 
-    uint16_t lo = read(addr_abs);
-    uint16_t hi = read(addr_abs + 1);
+    uint16_t lo = cpuRead(addr_abs);
+    uint16_t hi = cpuRead(addr_abs + 1);
     pc = (hi << 8) | lo;
 
     cycles = 7;
@@ -90,19 +90,19 @@ void olc6502::irq() {
 }
 
 void olc6502::nmi() {
-  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  cpuWrite(0x0100 + stkp, (pc >> 8) & 0x00FF);
   stkp--;
-  write(0x0100 + stkp, pc & 0x00FF);
+  cpuWrite(0x0100 + stkp, pc & 0x00FF);
   stkp--;
 
   SetFlag(B, 0);
   SetFlag(U, 1);
   SetFlag(I, 1);
-  write(0x0100 + stkp, status);
+  cpuWrite(0x0100 + stkp, status);
   stkp--;
 
-  uint16_t lo = read(addr_abs);
-  uint16_t hi = read(addr_abs + 1);
+  uint16_t lo = cpuRead(addr_abs);
+  uint16_t hi = cpuRead(addr_abs + 1);
   pc = (hi << 8) | lo;
 
   cycles = 7;
@@ -134,30 +134,30 @@ uint8_t olc6502::IMM() {
 }
 
 uint8_t olc6502::ZP0() {
-  addr_abs = read(pc);
+  addr_abs = cpuRead(pc);
   pc++;
   addr_abs &= 0x00FF;
   return 0;
 }
 
 uint8_t olc6502::ZPX() {
-  addr_abs = (read(pc) + x);
+  addr_abs = (cpuRead(pc) + x);
   pc++;
   addr_abs &= 0x00FF;
   return 0;
 }
 
 uint8_t olc6502::ZPY() {
-  addr_abs = (read(pc) + y);
+  addr_abs = (cpuRead(pc) + y);
   pc++;
   addr_abs &= 0x00FF;
   return 0;
 }
 
 uint8_t olc6502::ABS() {
-  uint16_t lo = read(pc);
+  uint16_t lo = cpuRead(pc);
   pc++;
-  uint16_t hi = read(pc);
+  uint16_t hi = cpuRead(pc);
   pc++;
 
   addr_abs = (hi << 8) | lo;
@@ -166,9 +166,9 @@ uint8_t olc6502::ABS() {
 }
 
 uint8_t olc6502::ABX() {
-  uint16_t lo = read(pc);
+  uint16_t lo = cpuRead(pc);
   pc++;
-  uint16_t hi = read(pc);
+  uint16_t hi = cpuRead(pc);
   pc++;
 
   addr_abs = (hi << 8) | lo;
@@ -178,9 +178,9 @@ uint8_t olc6502::ABX() {
 }
 
 uint8_t olc6502::ABY() {
-  uint16_t lo = read(pc);
+  uint16_t lo = cpuRead(pc);
   pc++;
-  uint16_t hi = read(pc);
+  uint16_t hi = cpuRead(pc);
   pc++;
 
   addr_abs = (hi << 8) | lo;
@@ -190,27 +190,27 @@ uint8_t olc6502::ABY() {
 }
 
 uint8_t olc6502::IND() {
-  uint16_t ptr_lo = read(pc);
+  uint16_t ptr_lo = cpuRead(pc);
   pc++;
-  uint16_t ptr_hi = read(pc);
+  uint16_t ptr_hi = cpuRead(pc);
   pc++;
 
   uint16_t ptr = (ptr_hi << 8) | ptr_lo;
 
   if (ptr_lo == 0x00FF)
-    addr_abs = (read(ptr & 0x00FF) << 8) | read(ptr + 0);
+    addr_abs = (cpuRead(ptr & 0x00FF) << 8) | cpuRead(ptr + 0);
   else
-    addr_abs = (read(ptr + 1) << 8) | read(ptr + 0);
+    addr_abs = (cpuRead(ptr + 1) << 8) | cpuRead(ptr + 0);
 
   return 0;
 }
 
 uint8_t olc6502::IZX() {
-  uint16_t t = read(pc);
+  uint16_t t = cpuRead(pc);
   pc++;
 
-  uint16_t lo = read((uint16_t)(t + (uint16_t)x) & 0x00FF);
-  uint16_t hi = read((uint16_t)(t + (uint16_t)x + 1) & 0x00FF);
+  uint16_t lo = cpuRead((uint16_t)(t + (uint16_t)x) & 0x00FF);
+  uint16_t hi = cpuRead((uint16_t)(t + (uint16_t)x + 1) & 0x00FF);
 
   addr_abs = (hi << 8) | lo;
 
@@ -218,11 +218,11 @@ uint8_t olc6502::IZX() {
 }
 
 uint8_t olc6502::IZY() {
-  uint16_t t = read(pc);
+  uint16_t t = cpuRead(pc);
   pc++;
 
-  uint16_t lo = read(t & 0x00FF);
-  uint16_t hi = read((t + 1) & 0x00FF);
+  uint16_t lo = cpuRead(t & 0x00FF);
+  uint16_t hi = cpuRead((t + 1) & 0x00FF);
 
   addr_abs = (hi << 8) | lo;
   addr_abs += y;
@@ -231,7 +231,7 @@ uint8_t olc6502::IZY() {
 }
 
 uint8_t olc6502::REL() {
-  addr_rel = read(pc);
+  addr_rel = cpuRead(pc);
   pc++;
   if (addr_rel & 0x80)
     addr_rel |= 0xFF00;
@@ -242,7 +242,7 @@ uint8_t olc6502::REL() {
 // Instructions (opcodes)
 uint8_t olc6502::fetch() {
   if (!(lookup[opcode].addrmode == &olc6502::IMP))
-    fetched = read(addr_abs);
+    fetched = cpuRead(addr_abs);
   return fetched;
 }
 
@@ -279,7 +279,7 @@ uint8_t olc6502::ASL() {
   if (lookup[opcode].addrmode == &olc6502::IMP)
     a = temp & 0x00FF;
   else
-    write(addr_abs, temp & 0x00FF);
+    cpuWrite(addr_abs, temp & 0x00FF);
   return 0;
 }
 
@@ -382,17 +382,17 @@ uint8_t olc6502::BRK() {
   pc++;
 
   SetFlag(I, 1);
-  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  cpuWrite(0x0100 + stkp, (pc >> 8) & 0x00FF);
   stkp--;
-  write(0x0100 + stkp, pc & 0x00FF);
+  cpuWrite(0x0100 + stkp, pc & 0x00FF);
   stkp--;
 
   SetFlag(B, 1);
-  write(0x0100 + stkp, status);
+  cpuWrite(0x0100 + stkp, status);
   stkp--;
   SetFlag(B, 0);
 
-  pc = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
+  pc = (uint16_t)cpuRead(0xFFFE) | ((uint16_t)cpuRead(0xFFFF) << 8);
   return 0;
 }
 
@@ -486,7 +486,7 @@ uint8_t olc6502::DEC()
 {
   fetch();
   temp = (uint16_t)fetched - 1;
-  write(addr_abs, temp & 0x00FF);
+  cpuWrite(addr_abs, temp & 0x00FF);
   SetFlag(Z, (temp & 0x00FF) == 0x0000);
   SetFlag(N, temp & 0x0080);
   return 0;
@@ -525,7 +525,7 @@ uint8_t olc6502::INC()
 {
   fetch();
   temp = (uint16_t)fetched + 1;
-  write(addr_abs, (fetched & 0x00FF));
+  cpuWrite(addr_abs, (fetched & 0x00FF));
   SetFlag(Z, (temp & 0x00FF) == 0x0000);
   SetFlag(N, temp & 0x0080);
   return 1;
@@ -560,9 +560,9 @@ uint8_t olc6502::JMP()
 uint8_t olc6502::JSR()
 {
   pc--;
-  write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+  cpuWrite(0x0100 + stkp, (pc >> 8) & 0x00FF);
   stkp--;
-  write(0x0100 + stkp, pc & 0x00FF);
+  cpuWrite(0x0100 + stkp, pc & 0x00FF);
   stkp--;
 
   pc = addr_abs;
@@ -610,7 +610,7 @@ uint8_t olc6502::LSR()
   if (lookup[opcode].addrmode == &olc6502::IMP)
     a = temp & 0x00FF;
   else
-    write(addr_abs, temp & 0x00FF);
+    cpuWrite(addr_abs, temp & 0x00FF);
   return 0;
 }
 
@@ -643,7 +643,7 @@ uint8_t olc6502::ORA()
 //Push accumulator on stack
 uint8_t olc6502::PHA()
 {
-  write(0x0100 + stkp, a);
+  cpuWrite(0x0100 + stkp, a);
   stkp--;
   return 0;
 }
@@ -651,7 +651,7 @@ uint8_t olc6502::PHA()
 //Push status on stack
 uint8_t olc6502::PHP()
 {
-  write(0x0100 + stkp, status | B | U);
+  cpuWrite(0x0100 + stkp, status | B | U);
   SetFlag(B, 0);
   SetFlag(U, 0);
   stkp--;
@@ -661,7 +661,7 @@ uint8_t olc6502::PHP()
 //Pull accumulator on the stack
 uint8_t olc6502::PLA() {
   stkp++;
-  a = read(0x100 + stkp);
+  a = cpuRead(0x100 + stkp);
   SetFlag(Z, a == 0x00);
   SetFlag(N, a & 0x80);
   return 0;
@@ -671,7 +671,7 @@ uint8_t olc6502::PLA() {
 uint8_t olc6502::PLP()
 {
   stkp++;
-  status = read(0x0100 + stkp);
+  status = cpuRead(0x0100 + stkp);
   SetFlag(U, 1);
   return 0;
 }
@@ -687,7 +687,7 @@ uint8_t olc6502::ROL()
   if (lookup[opcode].addrmode == &olc6502::IMP)
     a = temp & 0x00FF;
   else
-    write(addr_abs, temp & 0x00FF);
+    cpuWrite(addr_abs, temp & 0x00FF);
   return 0;
 }
 
@@ -702,30 +702,30 @@ uint8_t olc6502::ROR()
   if (lookup[opcode].addrmode == &olc6502::IMP)
     a = temp & 0x00FF;
   else
-    write(addr_abs, temp & 0x00FF);
+    cpuWrite(addr_abs, temp & 0x00FF);
   return 0;
 }
 
 //Return from interrupt
 uint8_t olc6502::RTI() {
   stkp++;
-  status = read(0x0100 + stkp);
+  status = cpuRead(0x0100 + stkp);
   status &= ~B;
   status &= ~U;
 
   stkp++;
-  pc = (uint16_t)read(0x0100 + stkp);
+  pc = (uint16_t)cpuRead(0x0100 + stkp);
   stkp++;
-  pc |= (uint16_t)read(0x100 + stkp) << 8;
+  pc |= (uint16_t)cpuRead(0x100 + stkp) << 8;
   return 0;
 }
 
 //Return from subroutine
 uint8_t olc6502::RTS() {
   stkp++;
-  pc = (uint16_t)read(0x0100 + stkp);
+  pc = (uint16_t)cpuRead(0x0100 + stkp);
   stkp++;
-  pc |= (uint16_t)read(0x0100 + stkp) << 8;
+  pc |= (uint16_t)cpuRead(0x0100 + stkp) << 8;
 
   pc++;
   return 0;
@@ -767,19 +767,19 @@ uint8_t olc6502::SEI() {
 
 //Store accumulator in memory
 uint8_t olc6502::STA() {
-  write(addr_abs, a);
+  cpuWrite(addr_abs, a);
   return 0;
 }
 
 //Store index x in memory
 uint8_t olc6502::STX() {
-  write(addr_abs, x);
+  cpuWrite(addr_abs, x);
   return 0;
 }
 
 //Store index y in memory
 uint8_t olc6502::STY() {
-  write(addr_abs, y);
+  cpuWrite(addr_abs, y);
   return 0;
 }
 
@@ -866,8 +866,8 @@ std::map<uint16_t, std::string> olc6502::disassemble(uint16_t nStart, uint16_t n
     // Prefix line with instruction address
     std::string sInst = "$" + hex(addr, 4) + ": ";
 
-    // Read instruction, and get its readable name
-    uint8_t opcode = bus->read(addr, true); addr++;
+    // cpuRead instruction, and get its cpuReadable name
+    uint8_t opcode = bus->cpuRead(addr, true); addr++;
     sInst += lookup[opcode].name + " ";
 
     // Get oprands from desired locations, and form the
@@ -881,66 +881,66 @@ std::map<uint16_t, std::string> olc6502::disassemble(uint16_t nStart, uint16_t n
     }
     else if (lookup[opcode].addrmode == &olc6502::IMM)
     {
-      value = bus->read(addr, true); addr++;
+      value = bus->cpuRead(addr, true); addr++;
       sInst += "#$" + hex(value, 2) + " {IMM}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ZP0)
     {
-      lo = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
       hi = 0x00;
       sInst += "$" + hex(lo, 2) + " {ZP0}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ZPX)
     {
-      lo = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
       hi = 0x00;
       sInst += "$" + hex(lo, 2) + ", X {ZPX}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ZPY)
     {
-      lo = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
       hi = 0x00;
       sInst += "$" + hex(lo, 2) + ", Y {ZPY}";
     }
     else if (lookup[opcode].addrmode == &olc6502::IZX)
     {
-      lo = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
       hi = 0x00;
       sInst += "($" + hex(lo, 2) + ", X) {IZX}";
     }
     else if (lookup[opcode].addrmode == &olc6502::IZY)
     {
-      lo = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
       hi = 0x00;
       sInst += "($" + hex(lo, 2) + "), Y {IZY}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ABS)
     {
-      lo = bus->read(addr, true); addr++;
-      hi = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
+      hi = bus->cpuRead(addr, true); addr++;
       sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + " {ABS}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ABX)
     {
-      lo = bus->read(addr, true); addr++;
-      hi = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
+      hi = bus->cpuRead(addr, true); addr++;
       sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", X {ABX}";
     }
     else if (lookup[opcode].addrmode == &olc6502::ABY)
     {
-      lo = bus->read(addr, true); addr++;
-      hi = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
+      hi = bus->cpuRead(addr, true); addr++;
       sInst += "$" + hex((uint16_t)(hi << 8) | lo, 4) + ", Y {ABY}";
     }
     else if (lookup[opcode].addrmode == &olc6502::IND)
     {
-      lo = bus->read(addr, true); addr++;
-      hi = bus->read(addr, true); addr++;
+      lo = bus->cpuRead(addr, true); addr++;
+      hi = bus->cpuRead(addr, true); addr++;
       sInst += "($" + hex((uint16_t)(hi << 8) | lo, 4) + ") {IND}";
     }
     else if (lookup[opcode].addrmode == &olc6502::REL)
     {
-      value = bus->read(addr, true); addr++;
+      value = bus->cpuRead(addr, true); addr++;
       sInst += "$" + hex(value, 2) + " [$" + hex(addr + value, 4) + "] {REL}";
     }
 
