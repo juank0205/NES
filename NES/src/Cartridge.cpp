@@ -31,6 +31,18 @@ Cartridge::Cartridge(const std::string& sFileName)
     nMapperID = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
 
     uint8_t nFileType = 1;
+
+    if (nFileType == 0){}
+    if (nFileType == 1)
+    {
+      nPRGBanks = header.prg_rom_chunks;
+      vPRGMemory.resize(nPRGBanks * 16384);
+      ifs.read((char*)vPRGMemory.data(), vPRGMemory.size());
+
+      nCHRBanks = header.chr_rom_chunks;
+      vCHRMemory.resize(nCHRBanks * 8192);
+      ifs.read((char*)vCHRMemory.data(), vCHRMemory.size());
+    }
   }
 }
 
